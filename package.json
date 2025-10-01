@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.1",
+    "@tabler/icons-react": "^3.35.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.544.0",
+    "motion": "^12.23.22",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
