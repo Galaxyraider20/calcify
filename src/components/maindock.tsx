@@ -1,12 +1,13 @@
+"use client";
+
 import {
-	Activity,
-	Component,
-	HomeIcon,
-	Mail,
-	Package,
-	ScrollText,
-	SunMoon,
+	Home,
+	BookOpen,
+	NotebookPen,
+	LineChart,
+	UserRound,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
 	Dock,
@@ -19,62 +20,63 @@ const data = [
 	{
 		title: "Home",
 		icon: (
-			<HomeIcon className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+			<Home className="h-full w-full text-neutral-600 dark:text-neutral-300" />
 		),
-		href: "#",
+		href: "/app",
 	},
 	{
-		title: "Products",
+		title: "Courses",
 		icon: (
-			<Package className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+			<BookOpen className="h-full w-full text-neutral-600 dark:text-neutral-300" />
 		),
-		href: "#",
+		href: "/app/courses",
 	},
 	{
-		title: "Components",
+		title: "Workspace",
 		icon: (
-			<Component className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+			<NotebookPen className="h-full w-full text-neutral-600 dark:text-neutral-300" />
 		),
-		href: "#",
+		href: "/app/workspace",
 	},
 	{
-		title: "Activity",
+		title: "Graphing",
 		icon: (
-			<Activity className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+			<LineChart className="h-full w-full text-neutral-600 dark:text-neutral-300" />
 		),
-		href: "#",
+		href: "/app/graphing",
 	},
 	{
-		title: "Change Log",
+		title: "Profile",
 		icon: (
-			<ScrollText className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+			<UserRound className="h-full w-full text-neutral-600 dark:text-neutral-300" />
 		),
-		href: "#",
-	},
-	{
-		title: "Email",
-		icon: (
-			<Mail className="h-full w-full text-neutral-600 dark:text-neutral-300" />
-		),
-		href: "#",
-	},
-	{
-		title: "Theme",
-		icon: (
-			<SunMoon className="h-full w-full text-neutral-600 dark:text-neutral-300" />
-		),
-		href: "#",
+		href: "/app/profile",
 	},
 ];
 
 export default function MainDock() {
+	const router = useRouter();
+
+	const navigateTo = (href: string) => {
+		router.push(href);
+	};
+
 	return (
-		<div className="absolute bottom-2 left-1/2 max-w-full -translate-x-1/2">
+		<div className="fixed bottom-6 left-1/2 -translate-x-1/2 max-w-full">
 			<Dock className="items-end pb-3">
 				{data.map((item, idx) => (
 					<DockItem
 						key={idx}
 						className="aspect-square rounded-full bg-gray-200 dark:bg-neutral-800"
+						onClick={() => navigateTo(item.href)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								navigateTo(item.href);
+							}
+						}}
+						role="link"
+						aria-label={item.title}
 					>
 						<DockLabel>{item.title}</DockLabel>
 						<DockIcon>{item.icon}</DockIcon>
