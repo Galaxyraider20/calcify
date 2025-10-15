@@ -398,7 +398,7 @@ export default function LandingPage() {
 							Bring Calcify to your classroom or research lab.
 						</h2>
 						<p className="text-slate-600 dark:text-slate-300">
-							Tell us about your team's goals and we will craft a rollout that
+							Tell us about your team&apos;s goals and we will craft a rollout that
 							complements your curriculum, timetable, and compliance needs.
 						</p>
 						<ul className="space-y-3 text-slate-700 dark:text-slate-200">

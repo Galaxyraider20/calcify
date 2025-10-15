@@ -7,18 +7,19 @@ import {
 	useSpring,
 	useTransform,
 	type SpringOptions,
+	type HTMLMotionProps,
 	AnimatePresence,
 } from "framer-motion";
 import {
 	Children,
 	cloneElement,
 	createContext,
+	isValidElement,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type HTMLAttributes,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -35,18 +36,23 @@ type DockProps = {
 	magnification?: number;
 	spring?: SpringOptions;
 };
-type DockItemProps = HTMLAttributes<HTMLDivElement> & {
-	className?: string;
+type DockItemProps = Omit<HTMLMotionProps<"div">, "children"> & {
 	children: React.ReactNode;
 };
-type DockLabelProps = {
-	className?: string;
-	children: React.ReactNode;
+type DockChildInjection = {
+	width?: MotionValue<number>;
+	isHovered?: MotionValue<number>;
 };
-type DockIconProps = {
-	className?: string;
-	children: React.ReactNode;
-};
+type DockLabelProps = Omit<HTMLMotionProps<"div">, "children"> &
+	DockChildInjection & {
+		children: React.ReactNode;
+		className?: string;
+	};
+type DockIconProps = Omit<HTMLMotionProps<"div">, "children"> &
+	DockChildInjection & {
+		children: React.ReactNode;
+		className?: string;
+	};
 
 type DocContextType = {
 	mouseX: MotionValue;
@@ -166,25 +172,43 @@ function DockItem({
 			role={role}
 			{...rest}
 		>
-			{Children.map(children, (child) =>
-				cloneElement(child as React.ReactElement<any>, { width, isHovered })
-			)}
+			{Children.map(children, (child) => {
+				if (!isValidElement<DockChildInjection>(child)) {
+					return child;
+				}
+
+				return cloneElement(child, { width, isHovered });
+			})}
 		</motion.div>
 	);
 }
 
-function DockLabel({ children, className, ...rest }: DockLabelProps) {
-	const restProps = rest as Record<string, unknown>;
-	const isHovered = restProps["isHovered"] as MotionValue<number>;
+function DockLabel({
+	children,
+	className,
+	isHovered,
+	width: _width,
+	...rest
+}: DockLabelProps) {
+	void _width;
 	const [isVisible, setIsVisible] = useState(false);
 
 	useEffect(() => {
+		if (!isHovered) {
+			setIsVisible(false);
+			return undefined;
+		}
+
 		const unsubscribe = isHovered.on("change", (latest) => {
 			setIsVisible(latest === 1);
 		});
 
 		return () => unsubscribe();
 	}, [isHovered]);
+
+	if (!isHovered) {
+		return null;
+	}
 
 	return (
 		<AnimatePresence>
@@ -200,6 +224,7 @@ function DockLabel({ children, className, ...rest }: DockLabelProps) {
 					)}
 					role="tooltip"
 					style={{ x: "-50%" }}
+					{...rest}
 				>
 					{children}
 				</motion.div>
@@ -208,16 +233,23 @@ function DockLabel({ children, className, ...rest }: DockLabelProps) {
 	);
 }
 
-function DockIcon({ children, className, ...rest }: DockIconProps) {
-	const restProps = rest as Record<string, unknown>;
-	const width = restProps["width"] as MotionValue<number>;
-
-	const widthTransform = useTransform(width, (val) => val / 2);
+function DockIcon({
+	children,
+	className,
+	width,
+	isHovered: _isHovered,
+	...rest
+}: DockIconProps) {
+	void _isHovered;
+	const fallbackWidth = useMotionValue(0);
+	const widthMotion = width ?? fallbackWidth;
+	const widthTransform = useTransform(widthMotion, (val) => val / 2);
 
 	return (
 		<motion.div
 			style={{ width: widthTransform }}
 			className={cn("flex items-center justify-center", className)}
+			{...rest}
 		>
 			{children}
 		</motion.div>

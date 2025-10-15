@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import MainDock from "@/components/maindock";
-import { NavbarDemo } from "@/components/mainnavbar";
 import { Providers } from "@/components/providers"; // <-- use the client wrapper
-import { redirect } from "next/navigation";
-
-import {
-	ClerkProvider,
-	SignInButton,
-	SignUpButton,
-	SignedIn,
-	SignedOut,
-	UserButton,
-} from "@clerk/nextjs";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({
