@@ -8,13 +8,22 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db/client";
 import { listCourseFilesForUser } from "@/db/course-files";
-import { courses } from "@/db/schema";
+import { courses, courseTopics } from "@/db/schema";
 import { normalizeCourseRecord } from "../course-data";
+
+export type CourseChatAttachment = {
+	id: string;
+	originalName: string;
+	mimeType: string | null;
+	sizeBytes: number;
+	createdAt: string;
+};
 
 export type CourseChatMessage = {
 	role: "user" | "assistant";
 	content: string;
 	savedCourseId?: string;
+	attachments?: CourseChatAttachment[];
 };
 
 const systemPrompt = `You are Calcify's course architect and mentor. The learner is a student who may not know what to ask for or which details matter. Lead the intake, study the materials you are given, and deliver a complete, student-ready course.
@@ -28,6 +37,28 @@ Operate with these directives:
 6. Keep progress metadata current: set completionPct to 0.0 for new plans and lastTouchedAt to the current ISO timestamp.
 7. Throughout the dialog, respond conversationally but stay concise. Highlight next actions for the learner, not implementation details.
 8. Do not defer delivery. If you have enough detail—or can responsibly assume it—return the final JSON immediately. Only ask follow-up questions when absolutely necessary.
+9. Do not ask the learner to enumerate every topic or lesson. Derive topic coverage from the syllabus and uploaded materials, and supply reasonable baseline assumptions when details are missing.
+10. When you need several clarifications, reply with only this structured prompt:
+<calcify:request>{
+  "requestId": "unique_short_snake_case_id",
+  "title": "Friendly, action-oriented heading",
+  "intro": "One sentence on why the details are needed.",
+  "questions": [
+    {
+      "id": "question_key",
+      "prompt": "Ask for one concrete detail.",
+      "type": "shortText" | "longText" | "choice",
+      "placeholder": "Example answer for context.",
+      "helper": "Optional guidance shown under the field.",
+      "required": true,
+      "options": [
+        { "value": "option_value", "label": "Visible option label" }
+      ]
+    }
+  ]
+}</calcify:request>
+Keep the questions list to five items or fewer. Only include the options array when type equals "choice". Default to "longText" when unsure.
+11. After the learner responds with <calcify:response>{...}</calcify:response>, confirm the answers, incorporate them, and continue toward the final plan.
 
 Before you conclude, verify you have:
 - course title, term, instructor (or explicit placeholders),
@@ -199,10 +230,35 @@ function mergeSystemAndHistory(
 	messages: CourseChatMessage[],
 	attachments: GeminiAttachment[],
 ) {
-	const contents = messages.map((message) => ({
-		role: message.role === "assistant" ? "model" : "user",
-		parts: [{ text: message.content }],
-	}));
+	const contents = messages.map((message) => {
+		const parts = [{ text: message.content }];
+
+		if (
+			message.role === "user" &&
+			message.attachments &&
+			message.attachments.length > 0
+		) {
+			const summary = message.attachments
+				.map((file) =>
+					[
+						file.originalName,
+						file.mimeType ? `(${file.mimeType})` : null,
+					]
+						.filter(Boolean)
+						.join(" "),
+				)
+				.join(", ");
+
+			parts.push({
+				text: `Learner attached files: ${summary}`,
+			});
+		}
+
+		return {
+			role: message.role === "assistant" ? "model" : "user",
+			parts,
+		};
+	});
 
 	if (attachments.length > 0) {
 		const lastUserIndex = (() => {
@@ -372,6 +428,76 @@ async function persistGeneratedCourse(
 				metadata: normalized,
 			})
 			.returning({ id: courses.id });
+
+		const rawTopics =
+			Array.isArray(normalized.syllabusExtract?.topics)
+				? normalized.syllabusExtract.topics
+				: [];
+
+		if (rawTopics.length > 0) {
+			const topicValues = rawTopics
+				.map((topic, index) => {
+					if (
+						typeof topic !== "object" ||
+						topic === null ||
+						Array.isArray(topic)
+					) {
+						return null;
+					}
+
+					const label =
+						typeof (topic as { label?: unknown }).label === "string"
+							? (topic as { label: string }).label.trim()
+							: null;
+
+					if (!label) {
+						return null;
+					}
+
+					const orderValue =
+						typeof (topic as { order?: unknown }).order === "number"
+							? (topic as { order: number }).order
+							: index + 1;
+
+					const weeksSource = Array.isArray(
+						(topic as { weeks?: unknown }).weeks,
+					)
+						? ((topic as { weeks?: unknown }).weeks as unknown[])
+						: null;
+
+					const weekNumbers = weeksSource
+						? weeksSource.reduce<number[]>((accumulator, entry) => {
+								const numeric =
+									typeof entry === "number"
+										? entry
+										: Number.parseInt(String(entry), 10);
+								if (Number.isInteger(numeric)) {
+									accumulator.push(numeric);
+								}
+								return accumulator;
+							}, [])
+						: [];
+
+					return {
+						courseId: created.id,
+						position: orderValue,
+						label,
+						weeks: weekNumbers.length > 0 ? weekNumbers : null,
+					};
+				})
+				.filter(
+					(value): value is {
+						courseId: string;
+						position: number;
+						label: string;
+						weeks: number[] | null;
+					} => value !== null,
+				);
+
+			if (topicValues.length > 0) {
+				await db.insert(courseTopics).values(topicValues);
+			}
+		}
 
 		revalidatePath("/app/courses");
 		revalidatePath(`/app/courses/${created.id}`);

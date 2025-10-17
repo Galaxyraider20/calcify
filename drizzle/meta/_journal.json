@@ -1,20 +1,27 @@
 {
-    "version":  "71",
-    "dialect":  "postgresql",
-    "entries":  [
-                    {
-                        "idx":  0,
-                        "version":  "7",
-                        "when":  1760643317240,
-                        "tag":  "0000_natural_the_stranger",
-                        "breakpoints":  true
-                    },
-                    {
-                        "idx":  1,
-                        "version":  "71",
-                        "when":  1760663361701,
-                        "tag":  "0001_add_course_files",
-                        "breakpoints":  false
-                    }
-                ]
+  "version": "71",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1760643317240,
+      "tag": "0000_natural_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "71",
+      "when": 1760663361701,
+      "tag": "0001_add_course_files",
+      "breakpoints": false
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760729064129,
+      "tag": "0002_fantastic_stone_men",
+      "breakpoints": true
+    }
+  ]
 }

@@ -69,6 +69,19 @@ export const courseFiles = pgTable("course_files", {
     .notNull(),
 });
 
+export const courseTopics = pgTable("course_topics", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  courseId: uuid("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  label: text("label").notNull(),
+  weeks: integer("weeks").array(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const graphHistory = pgTable("graph_history", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id")
@@ -118,17 +131,25 @@ export const workspacesRelations = relations(workspaces, ({ one }) => ({
   }),
 }));
 
-export const coursesRelations = relations(courses, ({ one }) => ({
+export const coursesRelations = relations(courses, ({ one, many }) => ({
   owner: one(users, {
     fields: [courses.userId],
     references: [users.id],
   }),
+  topics: many(courseTopics),
 }));
 
 export const courseFilesRelations = relations(courseFiles, ({ one }) => ({
   owner: one(users, {
     fields: [courseFiles.userId],
     references: [users.id],
+  }),
+}));
+
+export const courseTopicsRelations = relations(courseTopics, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseTopics.courseId],
+    references: [courses.id],
   }),
 }));
 
@@ -150,5 +171,6 @@ export type UserRow = typeof users.$inferSelect;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
 export type CourseRow = typeof courses.$inferSelect;
 export type CourseFileRow = typeof courseFiles.$inferSelect;
+export type CourseTopicRow = typeof courseTopics.$inferSelect;
 export type GraphHistoryRow = typeof graphHistory.$inferSelect;
 export type PreferenceRow = typeof preferences.$inferSelect;
