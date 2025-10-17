@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import MainDock from "@/components/maindock";
+import { ensureUserRecord } from "@/db/users";
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -18,6 +19,8 @@ export default async function AppLayout({
 	if (!userId) {
 		redirect("/landing");
 	}
+
+	await ensureUserRecord(userId);
 
 	return (
 		<div className="relative min-h-screen">
